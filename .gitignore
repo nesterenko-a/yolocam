@@ -1,3 +1,6 @@
 # Добавить конкретную директорию
 snapshots/
 *.pt
+run.bat
+__pycache__
+archives
