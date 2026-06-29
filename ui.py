@@ -1,10 +1,13 @@
 import cv2
 
-def setup_window(name, fullscreen):
+def setup_window(name, fullscreen, always_on_top=False):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
 
     if fullscreen:
         cv2.setWindowProperty(name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    if always_on_top:
+        cv2.setWindowProperty(name, cv2.WND_PROP_TOPMOST, 1)
 
 def draw_status(frame, mode):
     text = f"Mode: {mode} | 1 people | 2 animals | 3 objects | 4 all | Esc exit"

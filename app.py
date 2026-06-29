@@ -3,11 +3,22 @@ from ultralytics import YOLO
 
 import settings
 from classes import CLASS_GROUPS, MODES
+from employee_faces import EmployeeFaceRecognizer, draw_face_matches
 from reporter import Reporter
 from snapshots import SnapshotManager
 from ui import setup_window, draw_status
 
 model = YOLO(settings.MODEL_PATH)
+face_recognizer = None
+
+if settings.FACE_RECOGNITION_ENABLED:
+    face_recognizer = EmployeeFaceRecognizer(
+        settings.FACE_DB_PATH,
+        settings.FACE_SIMILARITY_THRESHOLD,
+        settings.FACE_DETECTION_SIZE,
+    )
+    if not settings.FACE_DB_PATH.exists():
+        print(f"Face database not found: {settings.FACE_DB_PATH}. Run build_face_db.py first.")
 
 camera = cv2.VideoCapture(settings.CAMERA_INDEX)
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, settings.CAMERA_WIDTH)
@@ -36,7 +47,17 @@ try:
         results = model(frame, classes=CLASS_GROUPS[mode], verbose=False)
         result = results[0]
 
-        snapshot_path = snapshots.try_save(frame, result)
+        annotated_frame = result.plot()
+
+        if face_recognizer:
+            face_matches = face_recognizer.identify_people(
+                frame,
+                result,
+                settings.PERSON_CONFIDENCE_THRESHOLD,
+            )
+            draw_face_matches(annotated_frame, face_matches)
+
+        snapshot_path = snapshots.try_save(annotated_frame, result)
         if snapshot_path:
             print(f"Saved snapshot: {snapshot_path}")
 
@@ -44,7 +65,6 @@ try:
         if archive_path:
             print(f"Sent archive: {archive_path}")
 
-        annotated_frame = result.plot()
         draw_status(annotated_frame, mode)
         cv2.imshow(settings.WINDOW_NAME, annotated_frame)
 

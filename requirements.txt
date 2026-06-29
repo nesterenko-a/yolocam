@@ -1,0 +1,6 @@
+ultralytics
+opencv-python
+requests
+pywin32; platform_system == "Windows"
+insightface
+onnxruntime

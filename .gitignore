@@ -4,3 +4,4 @@ snapshots/
 run.bat
 __pycache__
 archives
+employees.pkl
