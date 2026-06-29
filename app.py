@@ -44,6 +44,7 @@ snapshots = SnapshotManager(
 reporter = Reporter(settings.SAVE_DIR, settings.ARCHIVE_DIR, settings)
 
 mode_index = 0
+face_recognition_active = bool(face_recognizer)
 
 try:
     while True:
@@ -59,7 +60,7 @@ try:
         snapshot_frame = frame.copy()
         face_matches = []
 
-        if face_recognizer:
+        if face_recognizer and face_recognition_active:
             face_matches = face_recognizer.identify_people(
                 frame,
                 result,
@@ -101,7 +102,7 @@ try:
         if archive_path:
             print(f"Sent archive: {archive_path}")
 
-        draw_status(annotated_frame, mode)
+        draw_status(annotated_frame, mode, face_recognition_active)
         cv2.imshow(settings.WINDOW_NAME, annotated_frame)
 
         key = cv2.waitKey(1) & 0xFF
@@ -110,6 +111,10 @@ try:
             break
         elif key in (ord("1"), ord("2"), ord("3"), ord("4")):
             mode_index = key - ord("1")
+        elif key == ord("5") and face_recognizer:
+            face_recognition_active = not face_recognition_active
+            label = "ON" if face_recognition_active else "OFF"
+            print(f"Face recognition: {label}")
 finally:
     camera.release()
     cv2.destroyAllWindows()
