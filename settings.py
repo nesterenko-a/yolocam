@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from policies import Action
 
 MODEL_PATH = "yolo11n.pt"
 CAMERA_INDEX = 0
@@ -33,3 +34,10 @@ SMTP_PORT = 587
 
 TELEGRAM_BOT_TOKEN = os.getenv("YOLO_TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("YOLO_TELEGRAM_CHAT_ID", "")
+
+POLICIES: dict[str, Action] = {
+    "UNKNOWN": Action.ALERT,
+    "NO_FACE": Action.ARCHIVE,
+}
+POLICY_DEFAULT = Action.ARCHIVE
+POLICY_ALERT_COOLDOWN_SECONDS = 60

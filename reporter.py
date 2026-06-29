@@ -19,6 +19,9 @@ class Reporter:
         self.sent_files = set()
         self.last_report = time.time()
 
+    def mark_sent(self, path):
+        self.sent_files.add(path)
+
     def tick(self):
         now = time.time()
 

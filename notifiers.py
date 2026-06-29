@@ -34,3 +34,38 @@ def send_telegram_archive(archive_path, settings):
         )
 
     response.raise_for_status()
+
+
+def send_email_image(image_path, settings, subject="YOLO alert"):
+    message = EmailMessage()
+    message["From"] = settings.EMAIL_FROM
+    message["To"] = settings.EMAIL_TO
+    message["Subject"] = subject
+    message.set_content("YOLO snapshot attached.")
+
+    with open(image_path, "rb") as file:
+        message.add_attachment(
+            file.read(),
+            maintype="image",
+            subtype="jpeg",
+            filename=image_path.name,
+        )
+
+    with smtplib.SMTP(settings.SMTP_SERVER, settings.SMTP_PORT) as smtp:
+        smtp.starttls()
+        smtp.login(settings.EMAIL_FROM, settings.EMAIL_PASSWORD)
+        smtp.send_message(message)
+
+
+def send_telegram_image(image_path, settings, caption="YOLO alert"):
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendPhoto"
+
+    with open(image_path, "rb") as file:
+        response = requests.post(
+            url,
+            data={"chat_id": settings.TELEGRAM_CHAT_ID, "caption": caption},
+            files={"photo": file},
+            timeout=60,
+        )
+
+    response.raise_for_status()
