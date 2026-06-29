@@ -5,3 +5,6 @@ run.bat
 __pycache__
 archives
 employees.pkl
+dataset/
+katia/
+pavel/
