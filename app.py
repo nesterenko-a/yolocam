@@ -3,7 +3,7 @@ from ultralytics import YOLO
 
 import settings
 from classes import CLASS_GROUPS, MODES
-from employee_faces import EmployeeFaceRecognizer, draw_face_matches
+from employee_faces import EmployeeFaceRecognizer, draw_detection_labels, draw_face_labels
 from reporter import Reporter
 from snapshots import SnapshotManager
 from ui import setup_window, draw_status
@@ -47,7 +47,9 @@ try:
         results = model(frame, classes=CLASS_GROUPS[mode], verbose=False)
         result = results[0]
 
-        annotated_frame = result.plot()
+        annotated_frame = result.plot(labels=False)
+        snapshot_frame = frame.copy()
+        face_matches = []
 
         if face_recognizer:
             face_matches = face_recognizer.identify_people(
@@ -55,9 +57,11 @@ try:
                 result,
                 settings.PERSON_CONFIDENCE_THRESHOLD,
             )
-            draw_face_matches(annotated_frame, face_matches)
+            draw_face_labels(snapshot_frame, face_matches)
 
-        snapshot_path = snapshots.try_save(annotated_frame, result)
+        draw_detection_labels(annotated_frame, result, face_matches)
+
+        snapshot_path = snapshots.try_save(snapshot_frame, result)
         if snapshot_path:
             print(f"Saved snapshot: {snapshot_path}")
 

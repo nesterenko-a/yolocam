@@ -133,9 +133,7 @@ def draw_face_matches(frame, matches):
         x1, y1, x2, y2 = match.person_box
         known = match.name not in ("UNKNOWN", "NO_FACE")
         color = (0, 180, 0) if known else (0, 0, 255)
-        label = match.name
-        if match.similarity > 0:
-            label = f"{label} {match.similarity:.2f}"
+        label = format_match_label(match)
 
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
         draw_label(frame, label, x1, max(0, y1 - 8), color)
@@ -143,6 +141,58 @@ def draw_face_matches(frame, matches):
         if match.face_box:
             fx1, fy1, fx2, fy2 = match.face_box
             cv2.rectangle(frame, (fx1, fy1), (fx2, fy2), color, 1)
+
+
+def draw_detection_labels(frame, result, face_matches):
+    face_matches_by_box = {match.person_box: match for match in face_matches}
+
+    for box in result.boxes:
+        class_id = int(box.cls[0])
+        confidence = float(box.conf[0])
+        detection_box = clamp_box(box.xyxy[0].tolist(), frame.shape)
+        class_name = get_class_name(result.names, class_id)
+        label = f"{class_name} {confidence:.2f}"
+        color = (0, 180, 0) if class_id == 0 else (255, 120, 0)
+
+        face_match = face_matches_by_box.get(detection_box)
+        if face_match:
+            label = f"{label} | {format_match_label(face_match)}"
+            if face_match.name in ("UNKNOWN", "NO_FACE"):
+                color = (0, 0, 255)
+
+            if face_match.face_box:
+                fx1, fy1, fx2, fy2 = face_match.face_box
+                cv2.rectangle(frame, (fx1, fy1), (fx2, fy2), color, 1)
+
+        x1, y1, _, _ = detection_box
+        draw_label(frame, label, x1, max(0, y1 - 8), color)
+
+
+def draw_face_labels(frame, matches):
+    for match in matches:
+        if match.similarity <= 0:
+            continue
+
+        x1, y1, _, _ = match.person_box
+        known = match.name not in ("UNKNOWN", "NO_FACE")
+        color = (0, 180, 0) if known else (0, 0, 255)
+        draw_label(frame, format_match_label(match), x1, max(0, y1 - 8), color)
+
+
+def get_class_name(names, class_id):
+    if hasattr(names, "get"):
+        return names.get(class_id, str(class_id))
+
+    if 0 <= class_id < len(names):
+        return names[class_id]
+
+    return str(class_id)
+
+
+def format_match_label(match):
+    if match.similarity > 0:
+        return f"{match.name} {match.similarity:.2f}"
+    return match.name
 
 
 def draw_label(frame, text, x, y, color):
