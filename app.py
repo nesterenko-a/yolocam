@@ -47,7 +47,7 @@ try:
         results = model(frame, classes=CLASS_GROUPS[mode], verbose=False)
         result = results[0]
 
-        annotated_frame = result.plot(labels=False)
+        annotated_frame = result.plot(labels=False, conf=False)
         snapshot_frame = frame.copy()
         face_matches = []
 
