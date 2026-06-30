@@ -4,11 +4,12 @@ from ultralytics import YOLO
 import settings
 from classes import CLASS_GROUPS, MODES
 from employee_faces import EmployeeFaceRecognizer, draw_detection_labels, draw_face_labels
-from notifiers import send_email_image, send_telegram_image
+from notifiers import send_email_image, send_telegram_image, send_email_video, send_telegram_video
 from policies import Action, PolicyEngine
 from reporter import Reporter
 from snapshots import SnapshotManager
 from ui import setup_window, draw_status
+from video_recorder import VideoRecorder
 
 model = YOLO(settings.MODEL_PATH)
 face_recognizer = None
@@ -42,6 +43,8 @@ snapshots = SnapshotManager(
 )
 
 reporter = Reporter(settings.SAVE_DIR, settings.ARCHIVE_DIR, settings)
+
+video_recorder = VideoRecorder()
 
 mode_index = 0
 face_recognition_active = bool(face_recognizer)
@@ -79,8 +82,13 @@ try:
         should_alert = any(a in (Action.ALERT, Action.ALERT_AND_ARCHIVE) for a in actions)
         exclude_from_archive = actions.isdisjoint({Action.ARCHIVE, Action.ALERT_AND_ARCHIVE})
 
+        people_detected = snapshots.person_detected(result)
+        has_unknown = (
+            any(m.name in ("UNKNOWN", "NO_FACE") for m in face_matches)
+            or (people_detected and not face_recognition_active)
+        )
+
         if should_save:
-            has_unknown = any(m.name in ("UNKNOWN", "NO_FACE") for m in face_matches)
             snapshot_path = snapshots.try_save(snapshot_frame, result, warning=has_unknown)
             if snapshot_path:
                 print(f"Saved snapshot: {snapshot_path}")
@@ -98,6 +106,33 @@ try:
                         if exclude_from_archive:
                             reporter.mark_sent(snapshot_path)
                             snapshot_path.unlink()
+
+        # --- Видеозапись ---
+        if settings.VIDEO_ENABLED:
+            try:
+                should_record = people_detected and (
+                    not settings.VIDEO_ON_UNKNOWN_ONLY or has_unknown
+                )
+                if video_recorder.active:
+                    if should_record:
+                        if not video_recorder.write(frame):
+                            video_path = video_recorder.stop()
+                            if video_path:
+                                alert_text = "YOLO video alert"
+                                if settings.SEND_VIDEO_EMAIL:
+                                    send_email_video(video_path, settings, subject=alert_text)
+                                if settings.SEND_VIDEO_TELEGRAM:
+                                    send_telegram_video(video_path, settings, caption=alert_text)
+                                video_path.unlink()
+                    else:
+                        video_path = video_recorder.stop()
+                        if video_path:
+                            video_path.unlink()
+                elif should_record:
+                    video_recorder.start(frame)
+            except Exception as e:
+                print(f"Video recording error: {e}")
+                video_recorder.stop()
 
         archive_path = reporter.tick()
         if archive_path:
