@@ -4,14 +4,15 @@ from policies import Action
 
 # --- YOLO и камера ---
 MODEL_PATH = "yolo11n.pt"                 # файл весов YOLO (nano), скачивается автоматически
-CAMERA_INDEX = 0                          # индекс камеры (0 = встроенная)
+CAMERA_RAW = os.getenv("YOLO_CAMERA", "0")  # индекс камеры /dev/video0 или rtsp://...
+CAMERA_INDEX: int | str = int(CAMERA_RAW) if CAMERA_RAW.isdigit() else CAMERA_RAW
 WINDOW_NAME = "YOLO detector"             # заголовок окна OpenCV
 CAMERA_WIDTH = 1280                       # ширина кадра
 CAMERA_HEIGHT = 720                       # высота кадра
 FULLSCREEN = False                        # полноэкранный режим окна
-HEADLESS = True                          # работа без окна (например, на сервере)
-WEB_STREAM_ENABLED = True                # веб-трансляция (http://localhost:8080)
-WEB_STREAM_PORT = 8080                    # порт для веб-трансляции
+HEADLESS = os.getenv("YOLO_HEADLESS", "False").lower() in ("true", "1", "yes")
+WEB_STREAM_ENABLED = os.getenv("YOLO_WEB_STREAM", "False").lower() in ("true", "1", "yes")
+WEB_STREAM_PORT = int(os.getenv("YOLO_WEB_PORT", "8080"))
 
 # --- Директории ---
 SAVE_DIR = Path("snapshots")              # куда сохраняются снимки с людьми

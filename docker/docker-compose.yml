@@ -1,0 +1,21 @@
+services:
+  yolo-detector:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    # devices:
+    #   - /dev/video0:/dev/video0
+    environment:
+      - YOLO_HEADLESS=true
+      - YOLO_WEB_STREAM=true
+      - YOLO_WEB_PORT=8080
+      # - YOLO_EMAIL_FROM=
+      # - YOLO_EMAIL_PASSWORD=
+      # - YOLO_EMAIL_TO=
+      # - YOLO_TELEGRAM_BOT_TOKEN=
+      # - YOLO_TELEGRAM_CHAT_ID=
+    volumes:
+      - ../employees.pkl:/app/employees.pkl
+    restart: unless-stopped

@@ -1,0 +1,14 @@
+__pycache__
+.git
+.gitignore
+*.md
+run.bat
+run.sh
+*.pkl
+*.pt
+dataset/
+katia/
+pavel/
+snapshots/
+archives/
+videos/
