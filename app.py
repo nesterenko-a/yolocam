@@ -11,6 +11,7 @@ from reporter import Reporter
 from snapshots import SnapshotManager
 from ui import setup_window, draw_status
 from video_recorder import VideoRecorder
+import web_stream
 
 model = YOLO(settings.MODEL_PATH)
 face_recognizer = None
@@ -37,6 +38,10 @@ camera.set(cv2.CAP_PROP_FRAME_HEIGHT, settings.CAMERA_HEIGHT)
 if not settings.HEADLESS:
     setup_window(settings.WINDOW_NAME, settings.FULLSCREEN)
 
+print(f"HEADLESS={settings.HEADLESS} WEB_STREAM={settings.WEB_STREAM_ENABLED}")
+if settings.WEB_STREAM_ENABLED:
+    web_stream.start(settings.WEB_STREAM_PORT)
+
 snapshots = SnapshotManager(
     settings.SAVE_DIR,
     settings.PERSON_CONFIDENCE_THRESHOLD,
@@ -61,8 +66,7 @@ try:
         results = model(frame, classes=CLASS_GROUPS[mode], verbose=False)
         result = results[0]
 
-        if not settings.HEADLESS:
-            annotated_frame = result.plot(labels=False, conf=False)
+        annotated_frame = result.plot(labels=False, conf=False)
         snapshot_frame = frame.copy()
         face_matches = []
 
@@ -72,11 +76,9 @@ try:
                 result,
                 settings.PERSON_CONFIDENCE_THRESHOLD,
             )
-            if not settings.HEADLESS:
-                draw_face_labels(snapshot_frame, face_matches)
+            draw_face_labels(snapshot_frame, face_matches)
 
-        if not settings.HEADLESS:
-            draw_detection_labels(annotated_frame, result, face_matches)
+        draw_detection_labels(annotated_frame, result, face_matches)
 
         # Resolve policy actions for every detected person in this frame
         actions = {policy_engine.get_action(m.name) for m in face_matches}
@@ -142,6 +144,9 @@ try:
         archive_path = reporter.tick()
         if archive_path:
             print(f"Sent archive: {archive_path}")
+
+        if settings.WEB_STREAM_ENABLED:
+            web_stream.set_frame(annotated_frame)
 
         if settings.HEADLESS:
             time.sleep(1 / 30)

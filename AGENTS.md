@@ -15,6 +15,8 @@
 | `policies.py` | `Action` enum + `PolicyEngine` with per-person cooldown gating |
 | `reporter.py` | Zips new snapshots hourly (`REPORT_EVERY_SECONDS=3600`), sends via email/Telegram, **deletes sent files** |
 | `notifiers.py` | SMTP email (Gmail, TLS) and Telegram `sendDocument` API |
+| `video_recorder.py` | Short video clips triggered by person detection |
+| `web_stream.py` | Built-in HTTP MJPEG stream server (no extra deps) |
 | `archive_utils.py` | ZIP creation in `archives/` |
 | `ui.py` | OpenCV window + status bar with mode/help text |
 

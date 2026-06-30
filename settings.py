@@ -9,7 +9,9 @@ WINDOW_NAME = "YOLO detector"             # заголовок окна OpenCV
 CAMERA_WIDTH = 1280                       # ширина кадра
 CAMERA_HEIGHT = 720                       # высота кадра
 FULLSCREEN = False                        # полноэкранный режим окна
-HEADLESS = False                          # работа без окна (например, на сервере)
+HEADLESS = True                          # работа без окна (например, на сервере)
+WEB_STREAM_ENABLED = True                # веб-трансляция (http://localhost:8080)
+WEB_STREAM_PORT = 8080                    # порт для веб-трансляции
 
 # --- Директории ---
 SAVE_DIR = Path("snapshots")              # куда сохраняются снимки с людьми
