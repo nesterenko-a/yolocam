@@ -18,17 +18,18 @@ FACE_DB_PATH = Path("employees.pkl")      # файл базы лиц (созда
 
 # --- Снимки ---
 PERSON_CONFIDENCE_THRESHOLD = 0.75        # минимальная уверенность YOLO для класса "person"
-SNAPSHOT_AFTER_SECONDS = 0.2              # задержка перед первым снимком после появления человека
-SNAPSHOT_COOLDOWN_SECONDS = 5             # пауза между повторными снимками одного человека
+SNAPSHOT_AFTER_SECONDS = 0.3              # задержка перед первым снимком после появления человека
+SNAPSHOT_COOLDOWN_SECONDS = 7             # пауза между повторными снимками одного человека
 
 # --- Распознавание лиц ---
 FACE_RECOGNITION_ENABLED = True           # вкл/выкл распознавание лиц (InsightFace)
+FACE_RECOGNITION_INTERVAL = 1             # запускать распознавание раз в N кадров (<3 тормозит, >5 метки запаздывают)
 FACE_SIMILARITY_THRESHOLD = 0.45          # порог косинусного сходства (выше = строже)
 FACE_DETECTION_SIZE = (640, 640)          # размер кадра для детектора лиц (меньше = быстрее)
 
 # --- Отправка ---
-SEND_EMAIL = True                         # отправлять архивы/тревоги по email
-SEND_TELEGRAM = True                      # отправлять архивы/тревоги в Telegram
+SEND_EMAIL = False                         # отправлять архивы/тревоги по email
+SEND_TELEGRAM = False                      # отправлять архивы/тревоги в Telegram
 REPORT_EVERY_SECONDS = 3600               # как часто формировать часовой архив (3600 = 1 час)
 
 # --- Email (Gmail SMTP) ---
@@ -42,10 +43,13 @@ SMTP_PORT = 587                                       # порт TLS
 TELEGRAM_BOT_TOKEN = os.getenv("YOLO_TELEGRAM_BOT_TOKEN", "")  # токен бота (от BotFather)
 TELEGRAM_CHAT_ID = os.getenv("YOLO_TELEGRAM_CHAT_ID", "")      # ID чата для отправки
 
+# --- Разметка снимков ---
+MARK_UNKNOWN_SNAPSHOTS = True            # добавлять к имени файла "person_warning" при неопознанных лицах
+
 # --- Политики обработки ---
 POLICIES: dict[str, Action] = {
     "UNKNOWN": Action.ALERT,        # неопознанный → мгновенная тревога
     "NO_FACE": Action.ARCHIVE,      # лицо не найдено → в часовой архив
 }
 POLICY_DEFAULT = Action.ARCHIVE               # действие по умолчанию для остальных (известные сотрудники)
-POLICY_ALERT_COOLDOWN_SECONDS = 10            # пауза между тревогами для одного и того же человека
+POLICY_ALERT_COOLDOWN_SECONDS = 60            # пауза между тревогами для одного и того же человека

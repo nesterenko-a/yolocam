@@ -1,6 +1,9 @@
 import time
 import cv2
 
+import settings
+
+
 class SnapshotManager:
     def __init__(self, save_dir, confidence_threshold, delay, cooldown):
         self.save_dir = save_dir
@@ -19,7 +22,7 @@ class SnapshotManager:
                 return True
         return False
 
-    def try_save(self, frame, result):
+    def try_save(self, frame, result, warning=False):
         now = time.time()
 
         if not self.person_detected(result):
@@ -35,7 +38,10 @@ class SnapshotManager:
         if now - self.last_snapshot < self.cooldown:
             return None
 
-        path = self.save_dir / time.strftime("person_%Y-%m-%d_%H-%M-%S.jpg")
+        prefix = "person"
+        if warning and settings.MARK_UNKNOWN_SNAPSHOTS:
+            prefix = "person_warning"
+        path = self.save_dir / time.strftime(f"{prefix}_%Y-%m-%d_%H-%M-%S.jpg")
         cv2.imwrite(str(path), frame)
 
         self.last_snapshot = now

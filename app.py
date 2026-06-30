@@ -80,7 +80,8 @@ try:
         exclude_from_archive = actions.isdisjoint({Action.ARCHIVE, Action.ALERT_AND_ARCHIVE})
 
         if should_save:
-            snapshot_path = snapshots.try_save(snapshot_frame, result)
+            has_unknown = any(m.name in ("UNKNOWN", "NO_FACE") for m in face_matches)
+            snapshot_path = snapshots.try_save(snapshot_frame, result, warning=has_unknown)
             if snapshot_path:
                 print(f"Saved snapshot: {snapshot_path}")
                 if should_alert:
