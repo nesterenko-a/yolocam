@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import pickle
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
 import numpy as np
 
+warnings.filterwarnings("ignore", message=".*`estimate` is deprecated.*")
 try:
     from insightface.app import FaceAnalysis
 except ImportError:

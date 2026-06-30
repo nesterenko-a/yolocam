@@ -1,3 +1,4 @@
+import time
 import cv2
 from ultralytics import YOLO
 
@@ -33,7 +34,8 @@ camera = cv2.VideoCapture(settings.CAMERA_INDEX)
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, settings.CAMERA_WIDTH)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, settings.CAMERA_HEIGHT)
 
-setup_window(settings.WINDOW_NAME, settings.FULLSCREEN)
+if not settings.HEADLESS:
+    setup_window(settings.WINDOW_NAME, settings.FULLSCREEN)
 
 snapshots = SnapshotManager(
     settings.SAVE_DIR,
@@ -59,7 +61,8 @@ try:
         results = model(frame, classes=CLASS_GROUPS[mode], verbose=False)
         result = results[0]
 
-        annotated_frame = result.plot(labels=False, conf=False)
+        if not settings.HEADLESS:
+            annotated_frame = result.plot(labels=False, conf=False)
         snapshot_frame = frame.copy()
         face_matches = []
 
@@ -69,9 +72,11 @@ try:
                 result,
                 settings.PERSON_CONFIDENCE_THRESHOLD,
             )
-            draw_face_labels(snapshot_frame, face_matches)
+            if not settings.HEADLESS:
+                draw_face_labels(snapshot_frame, face_matches)
 
-        draw_detection_labels(annotated_frame, result, face_matches)
+        if not settings.HEADLESS:
+            draw_detection_labels(annotated_frame, result, face_matches)
 
         # Resolve policy actions for every detected person in this frame
         actions = {policy_engine.get_action(m.name) for m in face_matches}
@@ -138,6 +143,10 @@ try:
         if archive_path:
             print(f"Sent archive: {archive_path}")
 
+        if settings.HEADLESS:
+            time.sleep(1 / 30)
+            continue
+
         draw_status(annotated_frame, mode, face_recognition_active)
         cv2.imshow(settings.WINDOW_NAME, annotated_frame)
 
@@ -153,4 +162,5 @@ try:
             print(f"Face recognition: {label}")
 finally:
     camera.release()
-    cv2.destroyAllWindows()
+    if not settings.HEADLESS:
+        cv2.destroyAllWindows()
