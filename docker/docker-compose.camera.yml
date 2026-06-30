@@ -1,0 +1,4 @@
+services:
+  yolo-detector:
+    devices:
+      - /dev/video0:/dev/video0

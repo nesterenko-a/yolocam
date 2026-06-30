@@ -60,7 +60,11 @@ try:
     while True:
         ok, frame = camera.read()
         if not ok:
-            break
+            camera.release()
+            print("Camera disconnected, reconnecting in 3s...")
+            time.sleep(3)
+            camera = cv2.VideoCapture(settings.CAMERA_INDEX)
+            continue
 
         mode = MODES[mode_index]
         results = model(frame, classes=CLASS_GROUPS[mode], verbose=False)

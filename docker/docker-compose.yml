@@ -5,9 +5,9 @@ services:
       dockerfile: docker/Dockerfile
     ports:
       - "8080:8080"
-    # devices:
-    #   - /dev/video0:/dev/video0
     environment:
+    # Если нужно несколько камер или IP-камера — переменная YOLO_CAMERA:
+    # - YOLO_CAMERA=rtsp://user:pass@192.168.1.100:554/stream
       - YOLO_HEADLESS=true
       - YOLO_WEB_STREAM=true
       - YOLO_WEB_PORT=8080
