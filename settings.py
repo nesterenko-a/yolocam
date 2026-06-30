@@ -18,7 +18,7 @@ FACE_DB_PATH = Path("employees.pkl")      # файл базы лиц (созда
 
 # --- Снимки ---
 PERSON_CONFIDENCE_THRESHOLD = 0.75        # минимальная уверенность YOLO для класса "person"
-SNAPSHOT_AFTER_SECONDS = 0.3              # задержка перед первым снимком после появления человека
+SNAPSHOT_AFTER_SECONDS = 0.2              # задержка перед первым снимком после появления человека
 SNAPSHOT_COOLDOWN_SECONDS = 7             # пауза между повторными снимками одного человека
 
 # --- Распознавание лиц ---
