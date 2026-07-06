@@ -70,6 +70,10 @@ try:
             camera = cv2.VideoCapture(settings.CAMERA_INDEX)
             continue
 
+        if settings.WEB_STREAM_ENABLED:
+            mode_index = web_stream.get_mode_index()
+            face_recognition_active = web_stream.is_face_active()
+
         mode = MODES[mode_index]
         results = model(frame, classes=CLASS_GROUPS[mode], verbose=False)
         result = results[0]
@@ -169,8 +173,12 @@ try:
             break
         elif key in (ord("1"), ord("2"), ord("3"), ord("4")):
             mode_index = key - ord("1")
+            if settings.WEB_STREAM_ENABLED:
+                web_stream.set_mode_index(mode_index)
         elif key == ord("5") and face_recognizer:
             face_recognition_active = not face_recognition_active
+            if settings.WEB_STREAM_ENABLED:
+                web_stream.toggle_face()
             label = "ON" if face_recognition_active else "OFF"
             print(f"Face recognition: {label}")
 finally:
