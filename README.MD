@@ -101,6 +101,25 @@ YOLO_CAMERA=http://192.168.1.50:8081/stream python app.py
 
 Параметры: `--index` (индекс камеры, по умолч. 0), `--port` (порт, по умолч. 8081).
 
+### Docker + camera_server (через интернет)
+
+Камера и детектор могут быть в разных странах:
+
+```bash
+# 1. На машине с камерой (Франция) — сделать порт 8081 доступным извне:
+python camera_server.py --port 8081
+
+# 2. На сервере детектора (Финляндия) — передать URL камеры:
+YOLO_CAMERA=http://<публичный-IP-Франции>:8081/stream docker compose -f docker/docker-compose.yml up -d
+```
+
+Или через `.env` файл рядом с `docker-compose.yml`:
+
+```env
+YOLO_CAMERA=http://51.15.xxx.xxx:8081/stream
+YOLO_TELEGRAM_BOT_TOKEN=...
+```
+
 ## Управление
 
 | Клавиша | Действие |

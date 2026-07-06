@@ -15,6 +15,20 @@ import time
 import cv2
 
 
+def _get_ips():
+    ips = []
+    try:
+        hostname = socket.gethostname()
+        ips.append(socket.gethostbyname(hostname))
+    except Exception:
+        pass
+    for info in socket.getaddrinfo(hostname, None):
+        ip = info[4][0]
+        if ip not in ips and not ip.startswith("127."):
+            ips.append(ip)
+    return ips
+
+
 class CameraServer:
     def __init__(self, camera_index, port):
         self.camera_index = camera_index
@@ -84,7 +98,9 @@ class CameraServer:
         server.bind(("0.0.0.0", self.port))
         server.listen(5)
         print(f"Camera stream: http://localhost:{self.port}/stream")
-        print(f"Set YOLO_CAMERA=http://localhost:{self.port}/stream in main app")
+        for ip in _get_ips():
+            print(f"               http://{ip}:{self.port}/stream")
+        print(f"Set YOLO_CAMERA=http://<IP>:{self.port}/stream in main app or docker-compose")
 
         threading.Thread(target=self._capture, daemon=True).start()
 
