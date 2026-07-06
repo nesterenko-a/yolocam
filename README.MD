@@ -120,6 +120,49 @@ YOLO_CAMERA=http://51.15.xxx.xxx:8081/stream
 YOLO_TELEGRAM_BOT_TOKEN=...
 ```
 
+### Kubernetes (minikube)
+
+**Требования:** `kubectl`, `minikube`, `python`, `pip install kubernetes`.
+
+Порядок деплоя:
+
+```bash
+# 1. Убедиться, что employees.pkl есть в корне проекта (если нужны лица)
+#    Если файла нет — распознавание работать не будет, остальное — да.
+
+# 2. Установить Python-библиотеку для генерации манифестов
+pip install kubernetes
+
+# 3. Сгенерировать манифесты
+#    camera_url — адрес camera_server.py (локальный или удалённый)
+python generate_k8s.py --camera http://host.minikube.internal:8081/stream
+
+# 4. Собрать и загрузить образ в minikube
+docker build -t yolo-detector:latest -f docker/Dockerfile .
+minikube image load yolo-detector:latest
+
+# 5. Развернуть в кластер
+kubectl apply -f k8s/
+
+# 6. Открыть веб-стрим
+minikube service yolo-detector -n yolo-detector --url
+```
+
+Или одной командой (если `camera_server` на `host.minikube.internal:8081`):
+
+```bash
+deploy_minikube.bat
+# или с другим адресом камеры:
+deploy_minikube.bat http://10.8.1.1:8081/stream
+```
+
+**Если лица не распознаются** — скопировать `employees.pkl` в под:
+
+```bash
+kubectl cp employees.pkl <имя-пода>:/app/ -n yolo-detector
+kubectl delete pod -n yolo-detector <имя-пода>
+```
+
 ## Управление
 
 | Клавиша | Действие |
