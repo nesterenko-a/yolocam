@@ -31,9 +31,13 @@ policy_engine = PolicyEngine(
     settings.POLICY_ALERT_COOLDOWN_SECONDS,
 )
 
-camera = cv2.VideoCapture(settings.CAMERA_INDEX)
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, settings.CAMERA_WIDTH)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, settings.CAMERA_HEIGHT)
+if isinstance(settings.CAMERA_INDEX, str) and settings.CAMERA_INDEX.startswith("http"):
+    from mjpeg_reader import MJPEGReader
+    camera = MJPEGReader(settings.CAMERA_INDEX)
+else:
+    camera = cv2.VideoCapture(settings.CAMERA_INDEX)
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, settings.CAMERA_WIDTH)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, settings.CAMERA_HEIGHT)
 
 if not settings.HEADLESS:
     setup_window(settings.WINDOW_NAME, settings.FULLSCREEN)
