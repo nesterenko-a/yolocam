@@ -2,9 +2,12 @@ import runtime_settings
 import socket
 import threading
 import time
+from pathlib import Path
 from urllib.parse import unquote
 
 import cv2
+import settings
+from notifiers import send_email_archive, send_telegram_archive
 
 _CFG = runtime_settings
 
@@ -62,6 +65,8 @@ function setv(k,v) {
 <input type="text" value="{email_to}" onchange="setv('email_to',this.value)"></label>
 <div style="text-align:center;margin-top:16px">
 <a class="btn" href="/" style="background:#336">Back to stream</a>
+<a class="btn" href="/archives" style="background:#363">Archives</a>
+<a class="btn" href="#" onclick="if(confirm('Delete all archives, videos and snapshots?')){var x=new XMLHttpRequest();x.open('GET','/clear',true);x.onload=function(){alert('Cleared')};x.send()}return false" style="background:#633">Clear data</a>
 </div>
 <p id="msg" style="text-align:center;color:#0f0"></p>
 </div>
@@ -256,6 +261,100 @@ def _serve_settings_set(client, path):
     client.close()
 
 
+ARCHIVES_HTML = """\
+<html>
+<head>
+<meta charset="utf-8">
+<title>YOLO Archives</title>
+<style>
+body { margin:20px; background:#111; color:#fff; font:16px sans-serif; text-align:center; }
+table { margin:auto; border-collapse:collapse; }
+td, th { padding:8px 12px; border:1px solid #555; }
+.btn { display:inline-block; margin:6px 4px; padding:8px 20px; background:#333; color:#fff;
+       border:1px solid #555; border-radius:4px; cursor:pointer; font-size:14px; }
+.btn:hover { background:#555; }
+</style>
+<script>
+function toggle_all(s) {
+  var c = document.getElementsByName('file');
+  for(var i=0;i<c.length;i++) c[i].checked=s.checked;
+}
+function send_selected() {
+  var c = document.getElementsByName('file');
+  var ids = [];
+  for(var i=0;i<c.length;i++) if(c[i].checked) ids.push(c[i].value);
+  if(ids.length==0){alert('Select files');return}
+  var x = new XMLHttpRequest();
+  x.open('POST', '/archives/send', true);
+  x.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
+  x.onload = function(){ location.reload(); };
+  x.send('files='+ids.join(','));
+}
+</script>
+</head>
+<body>
+<h2>Archives</h2>
+<table>
+<tr><th><input type=checkbox onchange='toggle_all(this)'></th><th>File</th><th>Size</th></tr>
+{rows}
+</table>
+<div style="margin-top:16px">
+<a class="btn" href="#" onclick="send_selected();return false">Send selected</a>
+<a class="btn" href="/settings" style="background:#336">Back</a>
+</div>
+</body>
+</html>"""
+
+
+def _serve_archives(client):
+    rows = ""
+    for d in [settings.ARCHIVE_DIR, settings.VIDEO_DIR, settings.SAVE_DIR]:
+        for f in sorted(d.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True):
+            if f.is_file():
+                sz = f.stat().st_size
+                label = f"{f.parent.name}/{f.name}"
+                rows += f"<tr><td><input type=checkbox name=file value='{f}'></td><td>{label}</td><td>{sz/1024:.0f} KB</td></tr>"
+    if not rows:
+        rows = "<tr><td colspan=3>No files</td></tr>"
+    page = ARCHIVES_HTML.replace("{rows}", rows)
+    try:
+        client.sendall(b"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n" + page.encode())
+    except Exception:
+        pass
+    client.close()
+
+
+def _serve_archives_send(client, body):
+    try:
+        files_str = body.split("files=")[-1].split("&")[0]
+        files_str = unquote(files_str)
+        paths = [Path(p) for p in files_str.split(",") if p]
+        for p in paths:
+            if p.exists():
+                send_email_archive(p, settings)
+                send_telegram_archive(p, settings)
+                p.unlink()
+    except Exception as e:
+        print(f"Send archives error: {e}")
+    try:
+        client.sendall(b"HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\n\r\nOK")
+    except Exception:
+        pass
+    client.close()
+
+
+def _serve_clear(client):
+    for d in [settings.ARCHIVE_DIR, settings.VIDEO_DIR, settings.SAVE_DIR]:
+        for f in d.glob("*"):
+            if f.is_file():
+                f.unlink()
+    try:
+        client.sendall(b"HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\n\r\nCleared")
+    except Exception:
+        pass
+    client.close()
+
+
 def _handle(client):
     try:
         data = client.recv(4096).decode("utf-8", errors="replace")
@@ -270,6 +369,13 @@ def _handle(client):
         _serve_mode(client, line)
     elif "GET /face/toggle" in line:
         _serve_face(client)
+    elif "GET /clear" in line:
+        _serve_clear(client)
+    elif "GET /archives/send" in line or "POST /archives/send" in line:
+        body = data.split("\r\n\r\n", 1)[1] if "\r\n\r\n" in data else ""
+        _serve_archives_send(client, body)
+    elif "GET /archives" in line:
+        _serve_archives(client)
     elif "GET /settings/set?" in line:
         _serve_settings_set(client, line)
     elif "GET /settings" in line:
