@@ -5,6 +5,7 @@ __pycache__
 run.bat
 run.sh
 *.pkl
+!employees.pkl
 *.pt
 dataset/
 katia/
