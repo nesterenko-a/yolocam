@@ -2,11 +2,35 @@ import smtplib
 import requests
 from email.message import EmailMessage
 
+import runtime_settings
+import settings
+
+
+def _token():
+    return runtime_settings.get("telegram_token") or settings.TELEGRAM_BOT_TOKEN
+
+
+def _chat_id():
+    return runtime_settings.get("telegram_chat_id") or settings.TELEGRAM_CHAT_ID
+
+
+def _email_from():
+    return runtime_settings.get("email_from") or settings.EMAIL_FROM
+
+
+def _email_password():
+    return runtime_settings.get("email_password") or settings.EMAIL_PASSWORD
+
+
+def _email_to():
+    return runtime_settings.get("email_to") or settings.EMAIL_TO
+
+
 def send_email_archive(archive_path, settings):
     try:
         message = EmailMessage()
-        message["From"] = settings.EMAIL_FROM
-        message["To"] = settings.EMAIL_TO
+        message["From"] = _email_from()
+        message["To"] = _email_to()
         message["Subject"] = "YOLO snapshots archive"
         message.set_content("Archive with YOLO snapshots.")
 
@@ -20,19 +44,19 @@ def send_email_archive(archive_path, settings):
 
         with smtplib.SMTP(settings.SMTP_SERVER, settings.SMTP_PORT, timeout=10) as smtp:
             smtp.starttls()
-            smtp.login(settings.EMAIL_FROM, settings.EMAIL_PASSWORD)
+            smtp.login(_email_from(), _email_password())
             smtp.send_message(message)
     except Exception as e:
         print(f"Email archive send failed: {e}")
 
 def send_telegram_archive(archive_path, settings):
     try:
-        url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendDocument"
+        url = f"https://api.telegram.org/bot{_token()}/sendDocument"
 
         with open(archive_path, "rb") as file:
             response = requests.post(
                 url,
-                data={"chat_id": settings.TELEGRAM_CHAT_ID},
+                data={"chat_id": _chat_id()},
                 files={"document": file},
                 timeout=10,
             )
@@ -45,8 +69,8 @@ def send_telegram_archive(archive_path, settings):
 def send_email_image(image_path, settings, subject="YOLO alert"):
     try:
         message = EmailMessage()
-        message["From"] = settings.EMAIL_FROM
-        message["To"] = settings.EMAIL_TO
+        message["From"] = _email_from()
+        message["To"] = _email_to()
         message["Subject"] = subject
         message.set_content("YOLO snapshot attached.")
 
@@ -60,7 +84,7 @@ def send_email_image(image_path, settings, subject="YOLO alert"):
 
         with smtplib.SMTP(settings.SMTP_SERVER, settings.SMTP_PORT, timeout=10) as smtp:
             smtp.starttls()
-            smtp.login(settings.EMAIL_FROM, settings.EMAIL_PASSWORD)
+            smtp.login(_email_from(), _email_password())
             smtp.send_message(message)
     except Exception as e:
         print(f"Email alert send failed: {e}")
@@ -68,12 +92,12 @@ def send_email_image(image_path, settings, subject="YOLO alert"):
 
 def send_telegram_image(image_path, settings, caption="YOLO alert"):
     try:
-        url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendPhoto"
+        url = f"https://api.telegram.org/bot{_token()}/sendPhoto"
 
         with open(image_path, "rb") as file:
             response = requests.post(
                 url,
-                data={"chat_id": settings.TELEGRAM_CHAT_ID, "caption": caption},
+                data={"chat_id": _chat_id(), "caption": caption},
                 files={"photo": file},
                 timeout=10,
             )
@@ -86,8 +110,8 @@ def send_telegram_image(image_path, settings, caption="YOLO alert"):
 def send_email_video(video_path, settings, subject="YOLO video alert"):
     try:
         message = EmailMessage()
-        message["From"] = settings.EMAIL_FROM
-        message["To"] = settings.EMAIL_TO
+        message["From"] = _email_from()
+        message["To"] = _email_to()
         message["Subject"] = subject
         message.set_content("YOLO video attached.")
 
@@ -103,7 +127,7 @@ def send_email_video(video_path, settings, subject="YOLO video alert"):
 
         with smtplib.SMTP(settings.SMTP_SERVER, settings.SMTP_PORT, timeout=10) as smtp:
             smtp.starttls()
-            smtp.login(settings.EMAIL_FROM, settings.EMAIL_PASSWORD)
+            smtp.login(_email_from(), _email_password())
             smtp.send_message(message)
     except Exception as e:
         print(f"Email video send failed: {e}")
@@ -111,12 +135,12 @@ def send_email_video(video_path, settings, subject="YOLO video alert"):
 
 def send_telegram_video(video_path, settings, caption="YOLO video alert"):
     try:
-        url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendVideo"
+        url = f"https://api.telegram.org/bot{_token()}/sendVideo"
 
         with open(video_path, "rb") as file:
             response = requests.post(
                 url,
-                data={"chat_id": settings.TELEGRAM_CHAT_ID, "caption": caption},
+                data={"chat_id": _chat_id(), "caption": caption},
                 files={"video": file},
                 timeout=60,
             )

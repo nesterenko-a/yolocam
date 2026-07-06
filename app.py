@@ -3,6 +3,7 @@ import cv2
 from ultralytics import YOLO
 
 import settings
+import runtime_settings
 from classes import CLASS_GROUPS, MODES
 from employee_faces import EmployeeFaceRecognizer, draw_detection_labels, draw_face_labels
 from notifiers import send_email_image, send_telegram_image, send_email_video, send_telegram_video
@@ -57,8 +58,8 @@ reporter = Reporter(settings.SAVE_DIR, settings.ARCHIVE_DIR, settings)
 
 video_recorder = VideoRecorder()
 
-mode_index = 0
-face_recognition_active = bool(face_recognizer)
+mode_index = runtime_settings.get("mode_index") or 0
+face_recognition_active = runtime_settings.get("face_enabled") and bool(face_recognizer)
 
 try:
     while True:
@@ -97,6 +98,12 @@ try:
         if not face_matches and snapshots.person_detected(result):
             actions.add(policy_engine.get_action("NO_FACE"))
 
+        if not runtime_settings.get("policy_alert"):
+            actions.discard(Action.ALERT)
+            actions.discard(Action.ALERT_AND_ARCHIVE)
+            if Action.ARCHIVE not in actions:
+                actions.add(Action.ARCHIVE)
+
         should_save = any(a != Action.NONE for a in actions)
         should_alert = any(a in (Action.ALERT, Action.ALERT_AND_ARCHIVE) for a in actions)
         exclude_from_archive = actions.isdisjoint({Action.ARCHIVE, Action.ALERT_AND_ARCHIVE})
@@ -127,7 +134,7 @@ try:
                             snapshot_path.unlink()
 
         # --- Видеозапись ---
-        if settings.VIDEO_ENABLED:
+        if settings.VIDEO_ENABLED or runtime_settings.get("video_enabled"):
             try:
                 should_record = people_detected and (
                     not settings.VIDEO_ON_UNKNOWN_ONLY or has_unknown
@@ -138,9 +145,9 @@ try:
                             video_path = video_recorder.stop()
                             if video_path:
                                 alert_text = "YOLO video alert"
-                                if settings.SEND_VIDEO_EMAIL:
+                                if runtime_settings.get("send_video_email"):
                                     send_email_video(video_path, settings, subject=alert_text)
-                                if settings.SEND_VIDEO_TELEGRAM:
+                                if runtime_settings.get("send_video_telegram"):
                                     send_telegram_video(video_path, settings, caption=alert_text)
                                 video_path.unlink()
                     else:
@@ -173,14 +180,22 @@ try:
             break
         elif key in (ord("1"), ord("2"), ord("3"), ord("4")):
             mode_index = key - ord("1")
+            runtime_settings.set("mode_index", mode_index)
             if settings.WEB_STREAM_ENABLED:
                 web_stream.set_mode_index(mode_index)
         elif key == ord("5") and face_recognizer:
             face_recognition_active = not face_recognition_active
+            runtime_settings.set("face_enabled", face_recognition_active)
             if settings.WEB_STREAM_ENABLED:
                 web_stream.toggle_face()
             label = "ON" if face_recognition_active else "OFF"
             print(f"Face recognition: {label}")
+        elif key == ord("6"):
+            from classes import MODES
+            print(f"--- Settings (mode: {MODES[mode_index]}, face: {'ON' if face_recognition_active else 'OFF'}) ---")
+            for k, v in runtime_settings.all().items():
+                print(f"  {k}: {v}")
+            print("-----------------------")
 finally:
     camera.release()
     if not settings.HEADLESS:

@@ -2,6 +2,8 @@ import time
 from archive_utils import create_archive
 from notifiers import send_email_archive, send_telegram_archive
 
+import runtime_settings
+
 
 def delete_files(files):
     for file_path in files:
@@ -34,10 +36,10 @@ class Reporter:
         archive_path = create_archive(new_files, self.archive_dir)
 
         if archive_path:
-            if self.settings.SEND_EMAIL:
+            if runtime_settings.get("send_email"):
                 send_email_archive(archive_path, self.settings)
 
-            if self.settings.SEND_TELEGRAM:
+            if runtime_settings.get("send_telegram"):
                 send_telegram_archive(archive_path, self.settings)
 
             self.sent_files.update(new_files)

@@ -30,30 +30,37 @@ function setv(k,v) {
   x.open('GET', '/settings/set?'+k+'='+encodeURIComponent(v), true);
   x.send();
 }
-function save() {
-  var x = new XMLHttpRequest(); x.open('GET','/settings/save',true); x.send();
-  document.getElementById('msg').innerText = 'Saved';
-}
-function reset() {
-  var x = new XMLHttpRequest(); x.open('GET','/settings/reset',true);
-  x.onload = function(){ location.reload(); };
-  x.send();
-}
 </script>
 </head>
 <body>
 <div class="row">
 <h2>Settings</h2>
 <label>Camera URL:<br>
-<input type="text" id="cam" value="{camera_url}" onchange="setv('camera_url',this.value)"></label>
-<label><input type="checkbox" {send_email} onchange="setv('send_email',this.checked)"> Send Email</label>
-<label><input type="checkbox" {send_telegram} onchange="setv('send_telegram',this.checked)"> Send Telegram</label>
+<input type="text" value="{camera_url}" onchange="setv('camera_url',this.value)"></label>
 <label><input type="checkbox" {video_enabled} onchange="setv('video_enabled',this.checked)"> Record video</label>
 <label><input type="checkbox" {send_video_email} onchange="setv('send_video_email',this.checked)"> Send video via Email</label>
 <label><input type="checkbox" {send_video_telegram} onchange="setv('send_video_telegram',this.checked)"> Send video via Telegram</label>
+<label><input type="checkbox" {face_enabled} onchange="setv('face_enabled',this.checked)"> Face recognition</label>
+<label>Detection mode:<br>
+<select onchange="setv('mode_index',this.value)">
+<option value="0" {mode0}>People</option>
+<option value="1" {mode1}>Animals</option>
+<option value="2" {mode2}>Objects</option>
+<option value="3" {mode3}>All</option>
+</select></label>
+<h3>Telegram</h3>
+<label>Bot Token:<br>
+<input type="text" value="{telegram_token}" onchange="setv('telegram_token',this.value)"></label>
+<label>Chat ID:<br>
+<input type="text" value="{telegram_chat_id}" onchange="setv('telegram_chat_id',this.value)"></label>
+<h3>Email (Gmail)</h3>
+<label>From:<br>
+<input type="text" value="{email_from}" onchange="setv('email_from',this.value)"></label>
+<label>Password:<br>
+<input type="text" value="{email_password}" onchange="setv('email_password',this.value)"></label>
+<label>To:<br>
+<input type="text" value="{email_to}" onchange="setv('email_to',this.value)"></label>
 <div style="text-align:center;margin-top:16px">
-<a class="btn" href="#" onclick="save();return false">Save</a>
-<a class="btn" href="#" onclick="reset();return false" style="background:#600">Reset to defaults</a>
 <a class="btn" href="/" style="background:#336">Back to stream</a>
 </div>
 <p id="msg" style="text-align:center;color:#0f0"></p>
@@ -92,6 +99,7 @@ def set_mode_index(n):
     global _mode_index
     with _state_lock:
         _mode_index = n
+    _CFG.set("mode_index", n)
 
 
 def is_face_active():
@@ -103,6 +111,7 @@ def toggle_face():
     global _face_active
     with _state_lock:
         _face_active = not _face_active
+        _CFG.set("face_enabled", _face_active)
         return _face_active
 
 
@@ -118,11 +127,19 @@ img { max-width:100%; height:auto; }
 .btn { display:inline-block; margin:4px; padding:8px 16px; background:#333; color:#fff;
         border:1px solid #555; border-radius:4px; cursor:pointer; font-size:14px; }
 .btn:hover { background:#555; }
+.on { background:#0a0; border-color:#0f0; }
+.off { background:#600; border-color:#f00; }
 </style>
 <script>
 function cmd(url) {
   var x = new XMLHttpRequest();
   x.open('GET', url, true);
+  x.send();
+}
+function toggle(url,id) {
+  var x = new XMLHttpRequest();
+  x.open('GET', url, true);
+  x.onload = function(){ location.reload(); };
   x.send();
 }
 </script>
@@ -134,6 +151,11 @@ function cmd(url) {
 <a class="btn" href="#" onclick="cmd('/mode?n=2');return false">Objects</a>
 <a class="btn" href="#" onclick="cmd('/mode?n=3');return false">All</a>
 <a class="btn" href="#" onclick="cmd('/face/toggle');return false">Face: ON/OFF</a>
+<br>
+{email_btn}
+{telegram_btn}
+{policy_btn}
+<br>
 <a class="btn" href="/settings">Settings</a>
 </div>
 <img src="/stream">
@@ -142,9 +164,17 @@ function cmd(url) {
 
 
 def _serve_page(client):
-    page = HTML.encode()
+    def state(key, label):
+        on = _CFG.get(key)
+        cls = "btn on" if on else "btn off"
+        val = "0" if on else "1"
+        return f'<a class="{cls}" href="#" onclick="toggle(\'/settings/set?{key}={val}\',\'{key}\');return false">{label}: {"ON" if on else "OFF"}</a>'
+    page = HTML
+    page = page.replace("{email_btn}", state("send_email", "Email"))
+    page = page.replace("{telegram_btn}", state("send_telegram", "Telegram"))
+    page = page.replace("{policy_btn}", state("policy_alert", "Alert UNKNOWN"))
     try:
-        client.sendall(b"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n" + page)
+        client.sendall(b"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n" + page.encode())
     except Exception:
         pass
     client.close()
@@ -179,14 +209,23 @@ def _serve_settings(client):
     cfg = _CFG.all()
     def chk(key):
         return "checked" if cfg.get(key) else ""
-    html = SETTINGS_HTML.format(
-        camera_url=cfg.get("camera_url", ""),
-        send_email=chk("send_email"),
-        send_telegram=chk("send_telegram"),
-        video_enabled=chk("video_enabled"),
-        send_video_email=chk("send_video_email"),
-        send_video_telegram=chk("send_video_telegram"),
-    )
+    def sel(n):
+        return "selected" if cfg.get("mode_index") == n else ""
+    html = SETTINGS_HTML
+    html = html.replace("{camera_url}", cfg.get("camera_url", ""))
+    html = html.replace("{face_enabled}", chk("face_enabled"))
+    html = html.replace("{mode0}", sel(0))
+    html = html.replace("{mode1}", sel(1))
+    html = html.replace("{mode2}", sel(2))
+    html = html.replace("{mode3}", sel(3))
+    html = html.replace("{video_enabled}", chk("video_enabled"))
+    html = html.replace("{send_video_email}", chk("send_video_email"))
+    html = html.replace("{send_video_telegram}", chk("send_video_telegram"))
+    html = html.replace("{telegram_token}", cfg.get("telegram_token", ""))
+    html = html.replace("{telegram_chat_id}", cfg.get("telegram_chat_id", ""))
+    html = html.replace("{email_from}", cfg.get("email_from", ""))
+    html = html.replace("{email_password}", cfg.get("email_password", ""))
+    html = html.replace("{email_to}", cfg.get("email_to", ""))
     try:
         client.sendall(b"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n" + html.encode())
     except Exception:
@@ -217,24 +256,6 @@ def _serve_settings_set(client, path):
     client.close()
 
 
-def _serve_settings_save(client):
-    _CFG.save()
-    try:
-        client.sendall(b"HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\n\r\nSaved")
-    except Exception:
-        pass
-    client.close()
-
-
-def _serve_settings_reset(client):
-    _CFG.reset()
-    try:
-        client.sendall(b"HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\n\r\nReset")
-    except Exception:
-        pass
-    client.close()
-
-
 def _handle(client):
     try:
         data = client.recv(4096).decode("utf-8", errors="replace")
@@ -249,10 +270,6 @@ def _handle(client):
         _serve_mode(client, line)
     elif "GET /face/toggle" in line:
         _serve_face(client)
-    elif "GET /settings/save" in line:
-        _serve_settings_save(client)
-    elif "GET /settings/reset" in line:
-        _serve_settings_reset(client)
     elif "GET /settings/set?" in line:
         _serve_settings_set(client, line)
     elif "GET /settings" in line:

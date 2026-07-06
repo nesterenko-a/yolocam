@@ -16,7 +16,7 @@ def draw_status(frame, mode, face_recognition_active=True):
     bar_height = max(24, round(h / 720 * 36))
 
     face_label = "ON" if face_recognition_active else "OFF"
-    text = f"Mode: {mode} | 1 people | 2 animals | 3 objects | 4 all | 5 face:{face_label} | Esc exit"
+    text = f"Mode: {mode} | 1 people | 2 animals | 3 objects | 4 all | 5 face:{face_label} | 6 settings | Esc exit"
 
     cv2.rectangle(frame, (0, 0), (w, bar_height), (20, 20, 20), -1)
     cv2.putText(frame, text, (12, bar_height - 8), cv2.FONT_HERSHEY_SIMPLEX, scale, (255, 255, 255), thickness)
