@@ -1,8 +1,13 @@
 @echo off
 REM Deploy yolo-detector to minikube
+REM Usage: deploy_minikube.bat [camera_url]
+REM        deploy_minikube.bat http://host.minikube.internal:8081/stream
 
-echo Generating manifests...
-python generate_k8s.py
+set CAMERA=%1
+if "%CAMERA%"=="" set CAMERA=http://host.minikube.internal:8081/stream
+
+echo Generating manifests with CAMERA=%CAMERA%...
+python generate_k8s.py --camera "%CAMERA%"
 IF %ERRORLEVEL% NEQ 0 EXIT /B %ERRORLEVEL%
 
 echo Building image...
