@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: yolo-detector
+  name: yolo-detector
+  namespace: yolo-detector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: yolo-detector
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: yolo-detector
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: yolo-detector
+        - secretRef:
+            name: yolo-detector
+        image: yolo-detector:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /stream
+            port: 8080
+          periodSeconds: 30
+        name: yolo-detector
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: '2'
+            memory: 2Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /stream
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        volumeMounts:
+        - mountPath: /app/employees.pkl
+          name: data
+          subPath: employees.pkl
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claim_name: yolo-detector-data

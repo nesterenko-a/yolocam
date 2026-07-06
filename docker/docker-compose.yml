@@ -6,11 +6,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-    # Если нужно несколько камер или IP-камера — переменная YOLO_CAMERA:
-    # - YOLO_CAMERA=rtsp://user:pass@192.168.1.100:554/stream
       - YOLO_HEADLESS=true
       - YOLO_WEB_STREAM=true
       - YOLO_WEB_PORT=8080
+      - YOLO_CAMERA=http://10.8.1.1:8081/stream  # замените на адрес camera_server
       # - YOLO_EMAIL_FROM=
       # - YOLO_EMAIL_PASSWORD=
       # - YOLO_EMAIL_TO=
@@ -18,4 +17,3 @@ services:
       # - YOLO_TELEGRAM_CHAT_ID=
     volumes:
       - ../employees.pkl:/app/employees.pkl
-    restart: unless-stopped

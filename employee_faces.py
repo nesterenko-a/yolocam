@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import pickle
+import sys
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,11 +10,19 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+os.environ.setdefault("ORT_LOG_SEVERITY_LEVEL", "3")
 warnings.filterwarnings("ignore", message=".*`estimate` is deprecated.*")
+
+_devnull = os.devnull
+_stderr = sys.stderr
 try:
+    sys.stderr = open(_devnull, "w")
     from insightface.app import FaceAnalysis
 except ImportError:
     FaceAnalysis = None
+finally:
+    sys.stderr.close()
+    sys.stderr = _stderr
 
 
 @dataclass
