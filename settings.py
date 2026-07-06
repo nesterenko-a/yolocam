@@ -18,7 +18,7 @@ WEB_STREAM_PORT = int(os.getenv("YOLO_WEB_PORT", "8080"))
 SAVE_DIR = Path("snapshots")              # куда сохраняются снимки с людьми
 ARCHIVE_DIR = Path("archives")            # куда складываются ZIP-архивы перед отправкой
 DATASET_DIR = Path("dataset")             # папка с эталонными фото сотрудников (<имя>/)
-FACE_DB_PATH = Path("employees.pkl")      # файл базы лиц (создаётся build_face_db.py)
+FACE_DB_PATH = Path(os.getenv("YOLO_FACE_DB_PATH", "employees.pkl"))  # файл базы лиц (создаётся build_face_db.py)
 
 # --- Снимки ---
 PERSON_CONFIDENCE_THRESHOLD = 0.75        # минимальная уверенность YOLO для класса "person"

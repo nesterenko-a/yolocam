@@ -51,10 +51,9 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 10
         volumeMounts:
-        - mountPath: /app/employees.pkl
+        - mountPath: /app/data
           name: data
-          subPath: employees.pkl
       volumes:
       - name: data
         persistentVolumeClaim:
-          claim_name: yolo-detector-data
+          claimName: yolo-detector-data

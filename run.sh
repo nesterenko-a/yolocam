@@ -5,4 +5,6 @@ export YOLO_EMAIL_FROM="lex.kaname@gmail.com"
 export YOLO_EMAIL_PASSWORD="kdiq mowl kusu nhoa"
 export YOLO_EMAIL_TO="lex.kaname@ya.ru"
 
+export YOLO_CAMERA=http://localhost:8081/stream
+
 python app.py

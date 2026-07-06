@@ -17,21 +17,32 @@ try:
     from kubernetes.client import (
         ApiClient,
         V1ConfigMap,
+        V1ConfigMapEnvSource,
         V1Container,
+        V1ContainerPort,
         V1Deployment,
         V1DeploymentSpec,
+        V1EnvFromSource,
         V1HTTPGetAction,
+        V1HTTPIngressPath,
+        V1HTTPIngressRuleValue,
         V1Ingress,
+        V1IngressBackend,
         V1IngressRule,
+        V1IngressServiceBackend,
         V1IngressSpec,
+        V1IngressTLS,
         V1ObjectMeta,
         V1PersistentVolumeClaim,
         V1PersistentVolumeClaimSpec,
+        V1PersistentVolumeClaimVolumeSource,
         V1PodSpec,
         V1Probe,
         V1ResourceRequirements,
         V1Secret,
+        V1SecretEnvSource,
         V1Service,
+        V1ServiceBackendPort,
         V1ServicePort,
         V1ServiceSpec,
         V1Volume,
@@ -92,6 +103,7 @@ def make_configmap():
             "YOLO_HEADLESS": "true",
             "YOLO_WEB_STREAM": "true",
             "YOLO_WEB_PORT": str(PORT),
+            "YOLO_FACE_DB_PATH": "/app/data/employees.pkl",
             "YOLO_CAMERA": CAMERA_URL,
         },
     )
@@ -129,14 +141,14 @@ def make_deployment():
                             name=APP,
                             image=IMAGE,
                             image_pull_policy="IfNotPresent",
-                            ports=[{"containerPort": PORT}],
+                            ports=[V1ContainerPort(container_port=PORT)],
                             env_from=[
-                                {"configMapRef": {"name": APP}},
-                                {"secretRef": {"name": APP}},
+                                V1EnvFromSource(config_map_ref=V1ConfigMapEnvSource(name=APP)),
+                                V1EnvFromSource(secret_ref=V1SecretEnvSource(name=APP)),
                             ],
                             volume_mounts=[
                                 V1VolumeMount(
-                                    name="data", mount_path="/app/employees.pkl", sub_path="employees.pkl"
+                                    name="data", mount_path="/app/data"
                                 )
                             ],
                             resources=V1ResourceRequirements(
@@ -159,9 +171,9 @@ def make_deployment():
                     volumes=[
                         V1Volume(
                             name="data",
-                            persistent_volume_claim={
-                                "claim_name": f"{APP}-data"
-                            },
+                            persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
+                                claim_name=f"{APP}-data"
+                            ),
                         )
                     ],
                 ),
@@ -200,7 +212,20 @@ def make_ingress(domain: str):
             rules=[
                 V1IngressRule(
                     host=domain,
-                    http={"paths": [{"path": "/", "path_type": "Prefix", "backend": {"service": {"name": APP, "port": {"number": PORT}}}}]},
+                    http=V1HTTPIngressRuleValue(
+                        paths=[
+                            V1HTTPIngressPath(
+                                path="/",
+                                path_type="Prefix",
+                                backend=V1IngressBackend(
+                                    service=V1IngressServiceBackend(
+                                        name=APP,
+                                        port=V1ServiceBackendPort(number=PORT),
+                                    ),
+                                ),
+                            )
+                        ]
+                    ),
                 )
             ],
         ),
