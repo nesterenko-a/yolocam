@@ -53,6 +53,18 @@ spec:
         volumeMounts:
         - mountPath: /app/data
           name: data
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - test -f /app/data/employees.pkl || cp /app/employees.pkl /app/data/ 2>/dev/null
+          || true
+        image: yolo-detector:latest
+        imagePullPolicy: IfNotPresent
+        name: init-data
+        volumeMounts:
+        - mountPath: /app/data
+          name: data
       volumes:
       - name: data
         persistentVolumeClaim:

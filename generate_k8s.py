@@ -136,6 +136,15 @@ def make_deployment():
             template=V1PodTemplateSpec(
                 metadata=V1ObjectMeta(labels=_labels()),
                 spec=V1PodSpec(
+                    init_containers=[
+                        V1Container(
+                            name="init-data",
+                            image=IMAGE,
+                            image_pull_policy="IfNotPresent",
+                            command=["sh", "-c", "test -f /app/data/employees.pkl || cp /app/employees.pkl /app/data/ 2>/dev/null || true"],
+                            volume_mounts=[V1VolumeMount(name="data", mount_path="/app/data")],
+                        )
+                    ],
                     containers=[
                         V1Container(
                             name=APP,
